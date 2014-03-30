@@ -93,12 +93,53 @@ class SiteController extends Controller
 			// validate user input and redirect to the previous page if valid
 			if($model->validate() && $model->login())
 				$this->redirect(Yii::app()->user->returnUrl);
+                        else
+                            Yii::app()->user->setFlash('error','Błędny użytkownik lub hasło.'); 
 		}
 		// display the login form
 		$this->render('login',array('model'=>$model));
 	}
+        
+        public function actionRegister()
+        {
+            if(Yii::app()->request->isPostRequest){
+                $error = false;
 
-	/**
+                $username = $_POST['username'];
+                $password = $_POST['password'];
+                $passwordConfirm = $_POST['password_confirm'];
+                $user = Users::model()->find('username=:username', array(':username'=>$username));
+          
+                if(strlen($username) > 10){
+                    $error = true;
+                    Yii::app()->user->setFlash('error','Nazwa użytkownika może zawierać maksymalnie 50 znaków.'); 
+                }
+                if($error == false && $user != NULL){
+                    $error = true;
+                    Yii::app()->user->setFlash('error','Użytkownik o podanym loginie już istnieje. Proszę wpisać inny login.');
+                }
+                if($error == false && $password != $passwordConfirm){
+                    $error = true;
+                    Yii::app()->user->setFlash('error','Podane hasła nie są jednakowe.');
+                }
+                
+                if(!$error){
+                    $user = new Users;
+                    $user->username = $username;
+                    $user->password = Users::hashPassword($password);
+                    $user->created_at = time();
+                    if($user->save() !== false){
+                        Yii::app()->user->setFlash('success','Nowe konto zostało utworzone.');  
+                    }else{
+                        Yii::app()->user->setFlash('error','Wystąpił nieoczekiwany błąd. Spróbuj ponownie.');  
+                    }
+                }
+
+            }
+            $this->render('register');
+        }
+
+        /**
 	 * Logs out the current user and redirect to homepage.
 	 */
 	public function actionLogout()
